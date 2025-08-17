@@ -49,10 +49,41 @@
         font-size: 0.95em;
         color: #888;
       }
+      .letter-button {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 4px;
+        cursor: pointer;
+        min-width: 35px;
+      }
+      .letter-button:hover {
+        background: #f0f0f0;
+      }
+      .letter-button.active {
+        background: #2a6;
+        color: white;
+        border-color: #2a6;
+      }
     </style>
   </head>
   <body>
     <h2>Oxford 3000 Flashcards</h2>
+    <div id="alphabetFilter" style="margin-bottom: 20px; text-align: center">
+      <div style="margin-bottom: 10px">Filtrar por letra inicial:</div>
+      <div
+        id="letters"
+        style="
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 5px;
+        "
+      ></div>
+      <button onclick="resetLetterFilter()" style="margin-top: 10px">
+        Mostrar todas
+      </button>
+    </div>
     <div id="filterBar">
       <input
         type="text"
@@ -265,6 +296,50 @@
         showReviewWords(currentType);
       }
 
+      function createAlphabetButtons() {
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        const container = document.getElementById("letters");
+        letters.forEach((letter) => {
+          const button = document.createElement("button");
+          button.className = "letter-button";
+          button.textContent = letter;
+          button.onclick = () => filterByLetter(letter);
+          container.appendChild(button);
+        });
+      }
+
+      function filterByLetter(letter) {
+        // Resetear otros filtros
+        document.getElementById("search").value = "";
+        document.getElementById("classFilter").value = "";
+        document.getElementById("levelFilter").value = "";
+
+        // Actualizar botones
+        document.querySelectorAll(".letter-button").forEach((btn) => {
+          btn.classList.toggle("active", btn.textContent === letter);
+        });
+
+        // Filtrar palabras
+        filtered = words.filter((w) =>
+          w.word.toLowerCase().startsWith(letter.toLowerCase())
+        );
+        idx = 0;
+        showSpanish = false;
+        renderCard();
+        updateStats();
+      }
+
+      function resetLetterFilter() {
+        document.querySelectorAll(".letter-button").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        filtered = words.slice();
+        idx = 0;
+        showSpanish = false;
+        renderCard();
+        updateStats();
+      }
+
       // Carga automática del JSON al iniciar
       fetch("oxford-3000-es.json")
         .then((r) => r.json())
@@ -273,6 +348,7 @@
           filtered = words.slice();
           idx = 0;
           loadProgress();
+          createAlphabetButtons();
           renderCard();
           updateStats();
         })
