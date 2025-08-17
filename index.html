@@ -103,7 +103,10 @@
         <button onclick="rateCurrent('good')" style="background: #afa">
           ¡Me la sé!
         </button>
-        <button onclick="nextCard()">Siguiente</button>
+        <div style="margin-top: 10px">
+          <button onclick="previousCard()">Anterior</button>
+          <button onclick="nextCard()">Siguiente</button>
+        </div>
       </div>
       <div id="progress"></div>
       <div id="stats"></div>
@@ -188,6 +191,11 @@
         idx = (idx + 1) % filtered.length;
         renderCard();
       }
+      function previousCard() {
+        showSpanish = false;
+        idx = (idx - 1 + filtered.length) % filtered.length;
+        renderCard();
+      }
       function rateCurrent(val) {
         if (!filtered.length) return;
         progress[filtered[idx].word] = val;
@@ -213,6 +221,50 @@
         ).textContent = `¡Sabes ${good} / ${total} palabras! (${bad} no, ${regular} regular)`;
       }
 
+      function showReviewWords(type) {
+        const reviewWords = words.filter((w) => progress[w.word] === type);
+        const reviewList = document.getElementById("reviewList");
+
+        if (reviewWords.length === 0) {
+          reviewList.innerHTML = `<p>No hay palabras marcadas como "${
+            type === "bad" ? "No me la sé" : "Regular"
+          }"</p>`;
+          return;
+        }
+
+        const html = reviewWords
+          .map(
+            (w) => `
+          <div style="background: white; padding: 10px; margin: 5px 0; border-radius: 4px; display: flex; justify-content: space-between;">
+            <div>
+              <strong>${w.word}</strong> - ${w.spanish || ""}
+              <br>
+              <small>${w.class || ""} ${w.level ? `(${w.level})` : ""}</small>
+            </div>
+            <button onclick="changeWordStatus('${
+              w.word
+            }', 'good')" style="background: #afa">¡Ya me la sé!</button>
+          </div>
+        `
+          )
+          .join("");
+
+        reviewList.innerHTML = html;
+      }
+
+      function changeWordStatus(word, newStatus) {
+        progress[word] = newStatus;
+        saveProgress();
+        updateStats();
+        // Actualizar la lista actual
+        const currentType = document
+          .getElementById("reviewList")
+          .innerHTML.includes("No me la sé")
+          ? "bad"
+          : "regular";
+        showReviewWords(currentType);
+      }
+
       // Carga automática del JSON al iniciar
       fetch("oxford-3000-es.json")
         .then((r) => r.json())
@@ -228,6 +280,26 @@
 
       loadProgress();
     </script>
+    <div
+      id="reviewSection"
+      style="
+        margin-top: 30px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      "
+    >
+      <h3>Palabras para repasar</h3>
+      <div>
+        <button onclick="showReviewWords('bad')" style="background: #faa">
+          Ver palabras que no sé
+        </button>
+        <button onclick="showReviewWords('regular')" style="background: #ffa">
+          Ver palabras regulares
+        </button>
+      </div>
+      <div id="reviewList" style="margin-top: 15px"></div>
+    </div>
     <p style="margin-top: 40px; color: #bbb; font-size: 0.9em">
       Hecho con ❤️ para estudiar el Oxford 3000.
     </p>
