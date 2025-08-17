@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Oxford 3000 Flashcards</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+      }
+      #filterBar {
+        margin-bottom: 20px;
+      }
+      #flashcard {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px #ccc;
+        padding: 32px;
+        text-align: center;
+        max-width: 400px;
+        margin: auto;
+      }
+      #word {
+        font-size: 2em;
+        font-weight: bold;
+      }
+      #details {
+        margin: 10px 0;
+        color: #666;
+      }
+      #spanish {
+        font-size: 1.5em;
+        color: #2a6;
+      }
+      #controls button {
+        margin: 8px;
+      }
+      #progress {
+        margin: 16px 0;
+      }
+      #filterBar select,
+      #filterBar input {
+        margin-right: 6px;
+      }
+      #stats {
+        margin-top: 18px;
+        font-size: 0.95em;
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Oxford 3000 Flashcards</h2>
+    <div id="filterBar">
+      <input
+        type="text"
+        id="search"
+        placeholder="Buscar palabra, traducción..."
+      />
+      <select id="classFilter">
+        <option value="">Clase</option>
+        <option value="noun">Sustantivo</option>
+        <option value="verb">Verbo</option>
+        <option value="adjective">Adjetivo</option>
+        <option value="adverb">Adverbio</option>
+        <option value="pronoun">Pronombre</option>
+        <option value="preposition">Preposición</option>
+        <option value="conjunction">Conjunción</option>
+        <option value="determiner">Determinante</option>
+        <option value="number">Número</option>
+        <option value="exclamation">Exclamación</option>
+        <option value="modal verb">Verbo modal</option>
+        <option value="phrasal verb">Phrasal verb</option>
+        <option value="prefix">Prefijo</option>
+        <option value="definite article">Artículo definido</option>
+        <option value="indefinite article">Artículo indefinido</option>
+        <option value="ordinal number">Ordinal</option>
+      </select>
+      <select id="levelFilter">
+        <option value="">Nivel</option>
+        <option value="A1">A1</option>
+        <option value="A2">A2</option>
+        <option value="B1">B1</option>
+        <option value="B2">B2</option>
+      </select>
+      <button onclick="applyFilters()">Filtrar</button>
+      <button onclick="resetFilters()">Reset</button>
+    </div>
+    <div id="flashcard">
+      <div id="word"></div>
+      <div id="details"></div>
+      <button onclick="flipCard()">Ver traducción</button>
+      <div id="spanish" style="display: none"></div>
+      <div id="controls" style="margin-top: 14px">
+        <button onclick="rateCurrent('bad')" style="background: #faa">
+          No me la sé
+        </button>
+        <button onclick="rateCurrent('regular')" style="background: #ffa">
+          Regular
+        </button>
+        <button onclick="rateCurrent('good')" style="background: #afa">
+          ¡Me la sé!
+        </button>
+        <button onclick="nextCard()">Siguiente</button>
+      </div>
+      <div id="progress"></div>
+      <div id="stats"></div>
+    </div>
+    <!-- Eliminado el input file, la carga del JSON es automática -->
+    <script>
+      let words = [],
+        filtered = [],
+        idx = 0,
+        showSpanish = false;
+      let progress = {}; // { palabra: "bad"/"regular"/"good" }
+      const STORAGE_KEY = "oxford3000_progress";
+
+      // Cargar progreso guardado
+      function loadProgress() {
+        try {
+          progress = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        } catch {
+          progress = {};
+        }
+      }
+      // Guardar progreso
+      function saveProgress() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+      }
+
+      function applyFilters() {
+        const q = document.getElementById("search").value.trim().toLowerCase();
+        const cl = document.getElementById("classFilter").value;
+        const lv = document.getElementById("levelFilter").value;
+        filtered = words.filter(
+          (w) =>
+            (!q ||
+              w.word.toLowerCase().includes(q) ||
+              (w.spanish && w.spanish.toLowerCase().includes(q))) &&
+            (!cl || w.class === cl) &&
+            (!lv || w.level === lv)
+        );
+        idx = 0;
+        showSpanish = false;
+        renderCard();
+        updateStats();
+      }
+      function resetFilters() {
+        document.getElementById("search").value = "";
+        document.getElementById("classFilter").value = "";
+        document.getElementById("levelFilter").value = "";
+        filtered = words.slice();
+        idx = 0;
+        showSpanish = false;
+        renderCard();
+        updateStats();
+      }
+      function renderCard() {
+        if (!filtered.length) {
+          document.getElementById("word").textContent = "No hay palabras";
+          document.getElementById("details").textContent = "";
+          document.getElementById("spanish").style.display = "none";
+          document.getElementById("progress").textContent = "";
+          return;
+        }
+        const w = filtered[idx];
+        document.getElementById("word").textContent = w.word;
+        document.getElementById("details").textContent =
+          (w.class || "") + (w.level ? " (" + w.level + ")" : "");
+        document.getElementById("spanish").textContent = w.spanish || "";
+        document.getElementById("spanish").style.display = showSpanish
+          ? "block"
+          : "none";
+        document.getElementById("progress").textContent = `Palabra ${
+          idx + 1
+        } de ${filtered.length}`;
+      }
+      function flipCard() {
+        showSpanish = !showSpanish;
+        document.getElementById("spanish").style.display = showSpanish
+          ? "block"
+          : "none";
+      }
+      function nextCard() {
+        showSpanish = false;
+        idx = (idx + 1) % filtered.length;
+        renderCard();
+      }
+      function rateCurrent(val) {
+        if (!filtered.length) return;
+        progress[filtered[idx].word] = val;
+        saveProgress();
+        updateStats();
+        nextCard();
+      }
+      function updateStats() {
+        // Estadísticas de progreso
+        let good = 0,
+          bad = 0,
+          regular = 0,
+          total = 0;
+        filtered.forEach((w) => {
+          const r = progress[w.word];
+          total++;
+          if (r === "good") good++;
+          else if (r === "bad") bad++;
+          else if (r === "regular") regular++;
+        });
+        document.getElementById(
+          "stats"
+        ).textContent = `¡Sabes ${good} / ${total} palabras! (${bad} no, ${regular} regular)`;
+      }
+
+      // Carga automática del JSON al iniciar
+      fetch("oxford-3000-es.json")
+        .then((r) => r.json())
+        .then((data) => {
+          words = data;
+          filtered = words.slice();
+          idx = 0;
+          loadProgress();
+          renderCard();
+          updateStats();
+        })
+        .catch(() => alert("No se pudo cargar oxford-3000-es.json"));
+
+      loadProgress();
+    </script>
+    <p style="margin-top: 40px; color: #bbb; font-size: 0.9em">
+      Hecho con ❤️ para estudiar el Oxford 3000.
+    </p>
+  </body>
+</html>
