@@ -65,6 +65,20 @@
         color: white;
         border-color: #2a6;
       }
+      /* Nuevo: Botón de escuchar */
+      #speakBtn {
+        margin: 10px 0;
+        font-size: 1.1em;
+        background: #e5f4ff;
+        border: 1px solid #93c8ee;
+        border-radius: 5px;
+        cursor: pointer;
+        padding: 6px 16px;
+      }
+      #speakBtn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
     </style>
   </head>
   <body>
@@ -121,6 +135,8 @@
     </div>
     <div id="flashcard">
       <div id="word"></div>
+      <!-- Botón para escuchar la palabra -->
+      <button id="speakBtn" onclick="speakWord()" style="margin: 10px 0;">🔊 Escuchar</button>
       <div id="details"></div>
       <button onclick="flipCard()">Ver traducción</button>
       <div id="spanish" style="display: none"></div>
@@ -197,6 +213,7 @@
           document.getElementById("details").textContent = "";
           document.getElementById("spanish").style.display = "none";
           document.getElementById("progress").textContent = "";
+          document.getElementById("speakBtn").disabled = true;
           return;
         }
         const w = filtered[idx];
@@ -210,6 +227,7 @@
         document.getElementById("progress").textContent = `Palabra ${
           idx + 1
         } de ${filtered.length}`;
+        document.getElementById("speakBtn").disabled = false;
       }
       function flipCard() {
         showSpanish = !showSpanish;
@@ -338,6 +356,19 @@
         showSpanish = false;
         renderCard();
         updateStats();
+      }
+
+      // Nueva función para pronunciar la palabra
+      function speakWord() {
+        if (!filtered.length) return;
+        const w = filtered[idx].word;
+        if (!window.speechSynthesis) {
+          alert('La síntesis de voz no es compatible con este navegador.');
+          return;
+        }
+        const utter = new window.SpeechSynthesisUtterance(w);
+        utter.lang = "en-US";
+        window.speechSynthesis.speak(utter);
       }
 
       // Carga automática del JSON al iniciar
